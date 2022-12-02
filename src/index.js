@@ -4,18 +4,19 @@ const axios = require('axios')
 const FormData = require('form-data')
 const path = require('path')
 
-const PLUGINS_NAME = 'UploadSourceMapPlugin'
+const PLUGINS_NAME = 'uploadSourceMapPlugin'
 
-class UploadSourceMapPlugin {
+class uploadSourceMapPlugin {
 
     constructor(options) {
         console.log('options', options)
     }
-    
+
     async getAssets(distDir) {
         try {
             // 获取所有sourceMap的文件名
             const files = await readdir(distDir)
+            console.log('files', files)
             // 获取所有souceMap的文件路径
             return files.filter(el => /\.js\.map$/i.test(el)).map(el => path.join(distDir, el))
         } catch (error) {
@@ -44,17 +45,20 @@ class UploadSourceMapPlugin {
     }
 
     apply(compiler) {
-        const sourceMapDir = path.join(compiler.options.output.path, 'sourcemap')
+        const sourceMapDir = path.join(compiler.options.output.path, 'sourceMap')
         compiler.hooks.afterEmit.tapPromise(PLUGINS_NAME, async () => {
             let files = await this.getAssets(path.join(sourceMapDir, 'js'))
-            for (const file of files) {
-                await this.uploadFile(file)
+            if (files) {
+                for (const file of files) {
+                    console.log(`上传成功${file}文件`)
+                    await this.uploadFile(file)
+                }
+                await rm(sourceMapDir, {
+                    recursive: true
+                })
             }
-            await rm(sourceMapDir, {
-                recursive: true
-            })
         })
     }
 }
 
-module.exports = UploadSourceMapPlugin;
+module.exports = uploadSourceMapPlugin;
